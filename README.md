@@ -44,7 +44,7 @@ The Domain Layer houses Interactors, which are responsible for handling the busi
 
 The Network Layer handles all network-related operations, including data fetching from external data sources. Service classes connect to the data source and fetch the required data. Each Service class has a single responsibility, making the network layer modular and maintainable.
 
-A key feature of the Network Layer is the ability to dynamically switch endpoints. This flexibility allows for easy switching between different API endpoints during development, testing, and production. The EndPointProvider protocol contains a full list of network operations, enabling Interactors to extend as many service classes as needed. This feature harnesses the power of Swift's protocol extensions, providing Interactors with additional capabilities in a clean and modular way.
+A key feature of the Network Layer is the ability to dynamically switch endpoints. This flexibility allows for easy switching between different API endpoints during development, testing, and production. The EndPointProvider protocol contains a full list of network operations, enabling Interactors to extend as many service classes as needed. This feature harnesses the power of Swift's protocol extensions and protocol composition, providing Interactors with additional capabilities in a clean and modular way.
 
 
 ## Getting Started
