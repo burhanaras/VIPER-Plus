@@ -30,6 +30,23 @@ VIPER+ promotes the principle of "separation of concerns" by dividing the applic
 
 ![This is architecture.](https://github.com/burhanaras/VIPER-Plus/blob/main/VIPER-Plus.png?raw=true "This is architecture diagram for Recipes App.")
 
+VIPER+ follows a strict separation of concerns, dividing the application into three distinct layers:
+
+### Presentation Layer
+
+The Presentation Layer contains all UI-related classes, such as ViewControllers and Views. Each View has a corresponding Presenter class that handles UI logic, such as updating the view and handling user interactions. This layer is strictly responsible for the UI and does not contain any business logic.
+
+### Domain Layer
+
+The Domain Layer houses Interactors, which are responsible for handling the business logic of the application. Each Interactor has a single responsibility, making it easy to manage and understand. Additionally, Model classes reside in this layer, representing the application data and business objects.
+
+### Network Layer
+
+The Network Layer handles all network-related operations, including data fetching from external data sources. Service classes connect to the data source and fetch the required data. Each Service class has a single responsibility, making the network layer modular and maintainable.
+
+A key feature of the Network Layer is the ability to dynamically switch endpoints. This flexibility allows for easy switching between different API endpoints during development, testing, and production. The EndPointProvider protocol contains a full list of network operations, enabling Interactors to extend as many service classes as needed. This feature harnesses the power of Swift's protocol extensions, providing Interactors with additional capabilities in a clean and modular way.
+
+
 ## Getting Started
 
 To use VIPER+ in your project, follow these steps:
