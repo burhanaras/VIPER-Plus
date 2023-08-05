@@ -434,37 +434,18 @@ class CoinsPresenter: ObservableObject {
         Task.init {
             do {
                 let coinzResponse = try await interactor.downloadCoinList()
-                DispatchQueue.main.async {
-                    self.state = .loaded
-                }
-
                 switch coinzResponse {
                 case .success(let coinz):
                     self.coinList = coinz
-                    print("\(coinz.count) coins downloaded.")
+                    self.state = .loaded
                 case .failure(let failure):
-                    print("\(failure) inside Presenter")
-                }
-
-                let btcResponse = try await interactor.fetchDetail(of: "bitcoin")
-                switch btcResponse {
-                case .success(let coin):
-                    print("Downloaded: \(coin)")
-                case .failure(let failure):
-                    switch failure {
-                    case NetworkError.serviceError(let errorResponse):
-                        print(errorResponse.error)
-                    default:
-                        print("\(failure.localizedDescription) inside Presenter")
-                    }
+                    self.errorMessage = failure.localizedDescription
+                    self.state = .error
                 }
             }
             catch {
-                DispatchQueue.main.async {
-                    self.errorMessage = error.localizedDescription
-                    self.state = .loaded
-                }
-                print(error.localizedDescription)
+                self.errorMessage = error.localizedDescription
+                self.state = .loaded
             }
         }
     }
