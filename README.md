@@ -47,6 +47,19 @@ The Network Layer handles all network-related operations, including data fetchin
 A key feature of the Network Layer is the ability to dynamically switch endpoints. This flexibility allows for easy switching between different API endpoints during development, testing, and production. The EndPointProvider protocol contains a full list of network operations, enabling Interactors to extend as many service classes as needed. This feature harnesses the power of Swift's protocol extensions and protocol composition, providing Interactors with additional capabilities in a clean and modular way.
 
 
+## Sample Usage
+
+```swift
+let baseAPIURL = URL(string: "https://api.coingecko.com/api/v3/")!
+let networkLayer = URLSessionNetworkLayer(logger: nil, baseAPIURL: baseAPIURL)
+let endpointProvider = ExampleEndpointProvider(baseAPIURL: baseAPIURL)
+
+let presenter = CoinsPresenter(interactor: CoinsInteractorImpl(networkLayer: networkLayer, endpointProvider: endpointProvider))
+let coinsListView = CoinsListView(presenter: presenter)
+
+
+```
+
 ## Getting Started
 
 To use VIPER+ in your project, follow these steps:
