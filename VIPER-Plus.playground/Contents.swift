@@ -450,3 +450,209 @@ class CoinsPresenter: ObservableObject {
         }
     }
 }
+
+
+
+
+
+
+// MARK: - Test
+
+import XCTest
+
+class MockInteractor: BaseInteractor {
+
+    var networkLayer: NetworkLayer
+    var endpointProvider: EndpointProvider
+
+    init(networkLayer: NetworkLayer, endpointProvider: EndpointProvider) {
+        self.networkLayer = networkLayer
+        self.endpointProvider = endpointProvider
+    }
+}
+
+
+class GetCoinListServiceTests: XCTestCase {
+
+    class MockNetworkLayer<T>: NetworkLayer {
+
+        var capturedEndpoint: Endpoint?
+        var capturedAccessTokenProvider: AccessTokenProvider?
+        var response: T?
+
+        func request<T>(endpoint: Endpoint, accessTokenProvider: AccessTokenProvider) async throws -> Result<T, NetworkError> where T : Decodable {
+            capturedEndpoint = endpoint
+            capturedAccessTokenProvider = accessTokenProvider
+
+            // Return a dummy result for testing
+            return .success(response as! T)
+        }
+
+        static func mock(_ response: T) -> MockNetworkLayer {
+            let mock = MockNetworkLayer()
+            mock.response = response
+            return mock
+        }
+    }
+
+    class MockInteractor: BaseInteractor, GetCoinListService {
+
+        var networkLayer: NetworkLayer
+        var endpointProvider: EndpointProvider
+
+        init(networkLayer: NetworkLayer, endpointProvider: EndpointProvider) {
+            self.networkLayer = networkLayer
+            self.endpointProvider = endpointProvider
+        }
+
+    }
+
+    func testGetCoinList() async throws {
+        // Arrange
+        let coins: [Coin] = [
+            Coin(id: "BTC", symbol: "btc", name: "Bitcoin"),
+            Coin(id: "ETH", symbol: "", name: "Ethereum")
+        ]
+        let mockNetworkLayer = MockNetworkLayer.mock(coins)
+
+        let baseAPIURL = URL(string: "sample url")!
+        let mockEndpointProvider = ExampleEndpointProvider(baseAPIURL: baseAPIURL)
+        let interactor = MockInteractor(networkLayer: mockNetworkLayer, endpointProvider: mockEndpointProvider)
+        let service: GetCoinListService = interactor
+
+        // Act
+        let result = try await service.getCoinList()
+
+        // Assert
+        switch result {
+        case .success(let coins):
+            XCTAssertEqual(coins.count, 2)
+            XCTAssertEqual(coins[0].id, "BTC")
+            XCTAssertEqual(coins[1].name, "Ethereum")
+        case .failure:
+            XCTFail("Unexpected failure")
+        }
+
+        // Verify captured values
+        XCTAssertEqual(mockNetworkLayer.capturedEndpoint, mockEndpointProvider.getCryptoCoinPricesEndpoint() as? Endpoint)
+        XCTAssertEqual(mockNetworkLayer.capturedAccessTokenProvider?.accessToken, AccessTokenProvider.shared.accessToken)
+    }
+}
+
+
+
+class URLSessionNetworkLayerTests: XCTestCase {
+    var networkLayer: URLSessionNetworkLayer!
+
+    override func setUp() {
+        super.setUp()
+        networkLayer = URLSessionNetworkLayer(baseAPIURL: URL(string: "https://api.example.com")!)
+    }
+
+    override func tearDown() {
+        networkLayer = nil
+        super.tearDown()
+    }
+
+    func testRequestSuccess() async throws {
+        // Given
+        let endpoint = Endpoint(path: "/example", method: .get, parameters: nil, headers: nil)
+
+        // When
+        let result: Result<Data, NetworkError> = try await networkLayer.request(endpoint: endpoint)
+
+        // Then
+        switch result {
+            case .success(let data):
+                // Validate the data as needed
+                XCTAssertNotNil(data)
+            case .failure:
+                XCTFail("Request should succeed")
+        }
+    }
+
+    func testRequestFailure() async throws {
+        // Given
+        let endpoint = Endpoint(path: "/invalid", method: .get, parameters: nil, headers: nil)
+
+        // When
+        let result: Result<Data, NetworkError> = try await networkLayer.request(endpoint: endpoint)
+
+        // Then
+        switch result {
+            case .success:
+                XCTFail("Request should fail")
+            case .failure(let error):
+                XCTAssertEqual(error, NetworkError.invalidURL)
+        }
+    }
+}
+
+
+// MARK: - Access token tests
+class URLSessionNetworkLayerTests0: XCTestCase {
+    var networkLayer: URLSessionNetworkLayer!
+    var accessTokenProvider: AccessTokenProvider!
+    var mockURLSession: MockURLSession!
+
+    override func setUp() {
+        super.setUp()
+        mockURLSession = MockURLSession()
+        accessTokenProvider = AccessTokenProvider.shared
+        networkLayer = URLSessionNetworkLayer(session: mockURLSession, baseAPIURL: URL(string: "https://api.example.com")!)
+    }
+
+    override func tearDown() {
+        networkLayer = nil
+        accessTokenProvider = nil
+        mockURLSession = nil
+        super.tearDown()
+    }
+
+    // Write other tests for URLSessionNetworkLayer
+
+    // Test if access token is added as a header in the request
+    func testAccessTokenHeader() async throws {
+        // Given
+        let baseURL = URL(string: "https://api.example.com")!
+        let endpoint = Endpoint(path: "/example", method: .get, parameters: nil, headers: nil)
+        let mockAccessToken = "mock_access_token"
+        accessTokenProvider.accessToken = mockAccessToken
+
+        let expectedHeaderValue = "Bearer \(mockAccessToken)"
+
+        let data = Data() // Sample response data
+        let response = HTTPURLResponse(url: baseURL, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        mockURLSession.stubbedData = data
+        mockURLSession.stubbedResponse = response
+
+        // When
+        let _ = try await networkLayer.request(endpoint: endpoint, accessTokenProvider: accessTokenProvider) as Result<Data, NetworkError>
+
+        // Then
+        let receivedRequest = mockURLSession.receivedRequest
+        XCTAssertEqual(receivedRequest?.url?.path, endpoint.path)
+        XCTAssertEqual(receivedRequest?.value(forHTTPHeaderField: "Authorization"), expectedHeaderValue)
+    }
+
+}
+
+// Mock URLSession for testing
+class MockURLSession: URLSession {
+    var receivedRequest: URLRequest?
+    var stubbedData: Data?
+    var stubbedResponse: URLResponse?
+
+    override func dataTask(with request: URLRequest, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
+        receivedRequest = request
+        completionHandler(stubbedData, stubbedResponse, nil)
+        return MockURLSessionDataTask()
+    }
+}
+
+class MockURLSessionDataTask: URLSessionDataTask {
+
+    override func resume() {
+        // Do nothing in the mock task
+    }
+}
